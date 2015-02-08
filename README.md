@@ -9,6 +9,12 @@ Copy your App ID into the relevant place in calculus_boss.config
 
 >python calculus_boss.py equations_file
 
+### Config File
+
+>calculus_boss.config
+
+Set the App ID here. Step-by-step solutions and plotting can be enabled / disabled here as well.
+
 ### Equations File
 
 The script reads from a text file formatted as such:
@@ -27,7 +33,7 @@ Currently this script properly supports queries of the format:
 >integral of n  
 >integral of n from a to b
 
-Any other types of queries will return unxepected results and either break the script or produce a strange PDF file.
+Any other types of queries may return unxepected results and either break the script or produce a strange PDF file.
 
 Please see example.math for some examples of well formed queries.
 
@@ -37,9 +43,5 @@ The script creates a new directory in the same directory as the script itself, w
 
 If the destination directory already exists (e.g. the script is run twice in a row with the same equation file for input) the directory and all its contents are deleted and a new directory created.
 
-Sometimes, WolframAlpha will time out on a query, and so no images will be downloaded for the problem. This currently happens silently, so be sure to check that all of the problems are there in the output PDF.
-
-## Warning
-
-This program comes with no guarantee of the correctness of the output! Please check your problems!
+Sometimes, WolframAlpha will time out on a query, and so no images will be downloaded for the problem. This sometimes happens silently, so be sure to check that all of the problems are there in the output PDF.
 

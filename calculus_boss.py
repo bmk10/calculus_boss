@@ -25,21 +25,24 @@ from img2pdf import img2pdf
 
 server = 'http://api.wolframalpha.com/v2/query.jsp'
 config = 'calculus_boss.config'
+app_id = ''
 
 def main(argv):
 
+    options = parse_config()
     paths_info = []
 
     sys.stdout.write('Working.')
     sys.stdout.flush()
 
-    paths_info = solve_problems(argv)   # future version will accept args
+    paths_info = solve_problems(argv, options)
     generate_pdf(paths_info)
 
     print   # pretty terminal newline
 
 def parse_config():
 
+    global app_id
     options = []
     file = open(config,'r')
 
@@ -49,14 +52,16 @@ def parse_config():
         print 'Cannot open config file.'
     else:
         options += [app_id]
+
+        for line in file:
+            options += [line.split('=')[1].split('\n')[0]]
     finally:
         file.close()
 
     return options
 
-def solve_problems(argv):
+def solve_problems(argv, options):
 
-    app_id = parse_config()[0]
     file = open(argv[1],'r')
     paths_info = []
     image_paths = []
@@ -65,11 +70,11 @@ def solve_problems(argv):
 
     try:
         foldername = file.readline().split('\n')[0] + '_'
-        paths_info += [foldername]
-
     except IOError:
         print 'Cannot open equation file.'
     else:
+        paths_info += [foldername]
+
         if os.path.exists(foldername):
             shutil.rmtree(foldername, ignore_errors=True)
 
@@ -78,18 +83,25 @@ def solve_problems(argv):
         for line in file:
 
             input = line
-            queryStr = wolf_engine.CreateQuery(input)
+            query_str = wolf_engine.CreateQuery(input) + '&includepodid='
             image_num = 0
 
-            if 'from' in queryStr or 'derivative' in queryStr:
-                queryStr += ("&includepodid=Input"
-                            +"&podstate=Input__Step-by-step%20solution")
+            if 'from' in query_str or 'derivative' in query_str:
+                query_type = 'Input'
             else:
-                queryStr += ("&includepodid=IndefiniteIntegral"
-                            +"&podstate=IndefiniteIntegral__Step-by-step%20solution")
+                query_type = 'IndefiniteIntegral'
 
-            wolf.WolframAlphaQuery(queryStr, app_id)
-            result = wolf_engine.PerformQuery(queryStr)
+            query_str += query_type
+
+            if options[1].lower() == 'true':
+                query_str += ('&podstate=' + query_type +
+                            '__Step-by-step%20solution')
+
+            if options[1].lower() == 'true':
+                query_str += '&includepodid=Plot'
+
+            wolf.WolframAlphaQuery(query_str, app_id)
+            result = wolf_engine.PerformQuery(query_str)
             result = wolf.WolframAlphaQueryResult(result)
 
             for pod in result.Pods():
@@ -98,8 +110,8 @@ def solve_problems(argv):
 
                 for subpod in wolf_pod.Subpods():
 
-                    waSubpod = wolf.Subpod(subpod)
-                    img = waSubpod.Img()
+                    wolf_sub_pod = wolf.Subpod(subpod)
+                    img = wolf_sub_pod.Img()
                     src = wolf.scanbranches(img[0], 'src')[0]
                     src_hash = hashlib.md5(src).hexdigest()
 
