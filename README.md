@@ -23,6 +23,7 @@ The format of "problem n" is simply a search query just as you would type it int
 
 Currently this script properly supports queries of the format:
 
+>derivative of n  
 >integral of n  
 >integral of n from a to b
 
@@ -32,7 +33,7 @@ Please see example.math for some examples of well formed queries.
 
 ### Output
 
-The script creates a new directory in the same directory as the script itself, with the same name as the first line of the input equation file. All of the relevant images are then downloaded from wolframalpha.com and saved in that folder, then a PDF is generated and saved to the same folder.
+The script creates a new directory in the same directory as the script itself, with the same name as the first line of the input equation file (plus an underscore). All of the relevant images are then downloaded from wolframalpha.com and saved in that folder, then a PDF is generated and saved to the same folder.
 
 If the destination directory already exists (e.g. the script is run twice in a row with the same equation file for input) the directory and all its contents are deleted and a new directory created.
 

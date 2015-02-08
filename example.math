@@ -9,3 +9,4 @@ integral of xsin(x) from 0 to pi
 integral of x^(4)ln(x) from 1 to 2
 integral of arctan(1/x) from 0 to sqrt(3)
 integral of t^(3)e^(-t^2)
+derivative of ln(x)-x^x

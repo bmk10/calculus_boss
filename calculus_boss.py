@@ -19,72 +19,116 @@
 # License along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-import sys, urllib, hashlib, os, shutil
-from wolframalpha import wap
+import sys, os, shutil, urllib, hashlib
+from wolframalpha import wap as wolf
 from img2pdf import img2pdf
 
-server = 'http://api.wolframalpha.com/v2/query.jsp'
-file = open('calculus_boss.config','r')
-appid = file.readline().split('=')[1].split('\n')[0]
-file = open(sys.argv[1],'r')
-image_paths = []
-problem_num = 0
+def main(argv):
 
-sys.stdout.write('Working.')
-sys.stdout.flush()
+    paths_info = []
 
-first_line = file.readline().split('\n')
-foldername = first_line[0]
+    sys.stdout.write('Working.')
+    sys.stdout.flush()
 
-if os.path.exists(foldername):
-    shutil.rmtree(foldername, ignore_errors=True)
+    paths_info = solve_problems(argv)   # future version will accept args
+    generate_pdf(paths_info)
 
-os.makedirs(foldername)
+    print   # pretty terminal newline
 
-for line in file:
+def parse_config():
 
-    input = line
-    waeo = wap.WolframAlphaEngine(appid, server)
-    queryStr = waeo.CreateQuery(input)
-    image_num = 0
+    options = []
+    file = open('calculus_boss.config','r')
 
-    if 'from' in queryStr:
-        queryStr += ("&includepodid=Input"
-                    +"&podstate=Input__Step-by-step%20solution")
+    try:
+        app_id = file.readline().split('=')[1].split('\n')[0]
+        options += [app_id]
+    finally:
+        file.close()
+
+    return options
+
+def solve_problems(argv):
+
+    server = 'http://api.wolframalpha.com/v2/query.jsp'
+    app_id = parse_config()[0]
+    file = open(sys.argv[1],'r')
+    paths_info = []
+    image_paths = []
+    wolf_engine = wolf.WolframAlphaEngine(app_id, server)
+    problem_num = 0
+
+    try:
+        foldername = file.readline().split('\n')[0] + '_'
+        paths_info += [foldername]
+
+    except IOError:
+        print 'Cannot open equation file.'
     else:
-        queryStr += ("&includepodid=IndefiniteIntegral"
-                    +"&podstate=IndefiniteIntegral__Step-by-step%20solution")
+        if os.path.exists(foldername):
+            shutil.rmtree(foldername, ignore_errors=True)
 
-    wap.WolframAlphaQuery(queryStr, appid)
-    result = waeo.PerformQuery(queryStr)
-    result = wap.WolframAlphaQueryResult(result)
+        os.makedirs(foldername)
 
-    for pod in result.Pods():
+        for line in file:
 
-        waPod = wap.Pod(pod)
+            input = line
+            queryStr = wolf_engine.CreateQuery(input)
+            image_num = 0
 
-        for subpod in waPod.Subpods():
+            if 'from' in queryStr or 'derivative' in queryStr:
+                queryStr += ("&includepodid=Input"
+                            +"&podstate=Input__Step-by-step%20solution")
+            else:
+                queryStr += ("&includepodid=IndefiniteIntegral"
+                            +"&podstate=IndefiniteIntegral__Step-by-step%20solution")
 
-            waSubpod = wap.Subpod(subpod)
-            plaintext = waSubpod.Plaintext()[0]
-            img = waSubpod.Img()
+            wolf.WolframAlphaQuery(queryStr, app_id)
+            result = wolf_engine.PerformQuery(queryStr)
+            result = wolf.WolframAlphaQueryResult(result)
 
-            src = wap.scanbranches(img[0], 'src')[0]
-            alt = wap.scanbranches(img[0], 'alt')[0]
-            src_hash = hashlib.md5(src).hexdigest()
-            image_path = (foldername + '/' + str(problem_num) + '.' +
-                    str(image_num) + '__' + src_hash + "__" + ".gif")
+            for pod in result.Pods():
 
-            urllib.urlretrieve(src,image_path)
-            image_paths.append(image_path)
-            image_num += 1
-            sys.stdout.write(' .')
-            sys.stdout.flush()
+                wolf_pod = wolf.Pod(pod)
 
-    problem_num += 1
+                for subpod in wolf_pod.Subpods():
 
-pdf_bytes = img2pdf.convert(image_paths, dpi=150, x=0, y=0)
+                    waSubpod = wolf.Subpod(subpod)
+                    plaintext = waSubpod.Plaintext()[0]
+                    img = waSubpod.Img()
 
-file = open(foldername + '/' + foldername + ".pdf","wb")
-file.write(pdf_bytes)
-print
+                    src = wolf.scanbranches(img[0], 'src')[0]
+                    alt = wolf.scanbranches(img[0], 'alt')[0]
+                    src_hash = hashlib.md5(src).hexdigest()
+                    image_path = (foldername + '/' + str(problem_num) + '.' +
+                            str(image_num) + '__' + src_hash + "__" + ".gif")
+
+                    urllib.urlretrieve(src,image_path)
+                    image_paths.append(image_path)
+                    image_num += 1
+                    sys.stdout.write(' .')
+                    sys.stdout.flush()
+
+            problem_num += 1
+
+    finally:
+        paths_info += [image_paths]
+        file.close()
+
+    return paths_info
+
+def generate_pdf(paths_info):
+
+    dir = paths_info[0]
+    paths = paths_info[1]
+    pdf_bytes = img2pdf.convert(paths, dpi=150, x=0, y=0)
+    file = open(dir + '/' + dir + ".pdf","wb")
+
+    try:
+        file.write(pdf_bytes)
+    finally:
+        file.close()
+
+if __name__ == "__main__":
+    main(sys.argv)
+
