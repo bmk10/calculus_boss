@@ -97,7 +97,7 @@ def solve_problems(argv, options):
                 query_str += ('&podstate=' + query_type +
                             '__Step-by-step%20solution')
 
-            if options[1].lower() == 'true':
+            if options[2].lower() == 'true':
                 query_str += '&includepodid=Plot'
 
             wolf.WolframAlphaQuery(query_str, app_id)
