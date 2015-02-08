@@ -23,6 +23,9 @@ import sys, os, shutil, urllib, hashlib
 from wolframalpha import wap as wolf
 from img2pdf import img2pdf
 
+server = 'http://api.wolframalpha.com/v2/query.jsp'
+config = 'calculus_boss.config'
+
 def main(argv):
 
     paths_info = []
@@ -38,10 +41,13 @@ def main(argv):
 def parse_config():
 
     options = []
-    file = open('calculus_boss.config','r')
+    file = open(config,'r')
 
     try:
         app_id = file.readline().split('=')[1].split('\n')[0]
+    except IOError:
+        print 'Cannot open config file.'
+    else:
         options += [app_id]
     finally:
         file.close()
@@ -50,9 +56,8 @@ def parse_config():
 
 def solve_problems(argv):
 
-    server = 'http://api.wolframalpha.com/v2/query.jsp'
     app_id = parse_config()[0]
-    file = open(sys.argv[1],'r')
+    file = open(argv[1],'r')
     paths_info = []
     image_paths = []
     wolf_engine = wolf.WolframAlphaEngine(app_id, server)
@@ -94,23 +99,20 @@ def solve_problems(argv):
                 for subpod in wolf_pod.Subpods():
 
                     waSubpod = wolf.Subpod(subpod)
-                    plaintext = waSubpod.Plaintext()[0]
                     img = waSubpod.Img()
-
                     src = wolf.scanbranches(img[0], 'src')[0]
-                    alt = wolf.scanbranches(img[0], 'alt')[0]
                     src_hash = hashlib.md5(src).hexdigest()
+
                     image_path = (foldername + '/' + str(problem_num) + '.' +
                             str(image_num) + '__' + src_hash + "__" + ".gif")
-
                     urllib.urlretrieve(src,image_path)
                     image_paths.append(image_path)
                     image_num += 1
+
                     sys.stdout.write(' .')
                     sys.stdout.flush()
 
             problem_num += 1
-
     finally:
         paths_info += [image_paths]
         file.close()
